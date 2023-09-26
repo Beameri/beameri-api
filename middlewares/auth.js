@@ -25,9 +25,10 @@ export const isAuthenticatedUser = async (req, res, next) => {
       });
     }
     const fuser = await User.findById(frontdecoded.id);
-
+    // console.log(fuser);
+    // console.log(frontdecoded.id);
     req.user = fuser;
-
+    // console.log(req.user);
     next();
   } catch (error) {
     return res.status(400).json({
@@ -112,6 +113,7 @@ export const isBusinessAuthenticated = async (req, res, next) => {
 export const authorizeRoles = (...roles) => {
   //pass admin
   return (req, res, next) => {
+    // console.log(req.user);
     if (!roles.includes(req.user.role)) {
       return next(
         new ErrorHander(
