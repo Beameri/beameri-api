@@ -1,19 +1,18 @@
-
-import dotenv from 'dotenv'
-dotenv.config()
-import app from "./app.js"
-import connectDatabase from "./database/db.js"
-import cloudinary from "cloudinary"
+import dotenv from "dotenv";
+dotenv.config();
+import app from "./app.js";
+import connectDatabase from "./database/db.js";
+import cloudinary from "cloudinary";
 
 // Connecting to database
-connectDatabase()
+connectDatabase();
 
 //console.log(process.env.CLOUDINARY_API_KEY)
 //cloudenary uses
 cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
+  cloud_name: process.env.CLOUDINARY_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 //<---------deployement------------->``
 // const data_dir = path.resolve();
@@ -26,14 +25,13 @@ cloudinary.config({
 //     );
 // } else {
 app.get("/", (req, res) => {
-    res.send("API is running..");
+  res.send("API is running..");
 });
 // }
 //<---------deployement------------->
 const server = app.listen(process.env.PORT, () => {
-    console.log(`Server  is working on http://localhost:${process.env.PORT}`)
-})
-
+  console.log(`Server is working on http://localhost:${process.env.PORT}`);
+});
 
 // Unhandled Promise Rejection
 // process.on("unhandledRejection", (err) => {
