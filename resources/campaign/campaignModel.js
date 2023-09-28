@@ -15,12 +15,12 @@ const campaignSchema = new mongoose.Schema(
       type: String,
       required: [true, "Please select a language."],
     },
-    videoTemplate: {
-      cloudinaryURL: {
-        type: String,
-        required: [true, "Please upload a video template."],
-      },
-    },
+    // videoTemplate: {
+    //   cloudinaryURL: {
+    //     type: String,
+    //     required: [true, "Please upload a video template."],
+    //   },
+    // },
     recipients: [
       {
         name: {
