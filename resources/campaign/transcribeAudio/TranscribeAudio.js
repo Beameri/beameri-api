@@ -8,7 +8,7 @@ export default async function transcribeAudio(mp3FilePath) {
       fs.readFileSync(mp3FilePath),
       {
         headers: {
-          authorization: "460d8665699b4b52ada537d62282bbbb",
+          authorization: process.env.ASSEMBLY_AI_API_KEY,
           "content-type": "application/octet-stream",
         },
       }
@@ -24,7 +24,7 @@ export default async function transcribeAudio(mp3FilePath) {
       },
       {
         headers: {
-          authorization: "460d8665699b4b52ada537d62282bbbb",
+          authorization: process.env.ASSEMBLY_AI_API_KEY,
           "content-type": "application/json",
         },
       }
@@ -41,7 +41,7 @@ export default async function transcribeAudio(mp3FilePath) {
         `https://api.assemblyai.com/v2/transcript/${jobId}`,
         {
           headers: {
-            authorization: "460d8665699b4b52ada537d62282bbbb",
+            authorization: process.env.ASSEMBLY_AI_API_KEY,
           },
         }
       );
