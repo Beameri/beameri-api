@@ -5,7 +5,6 @@ import { dirname } from "path";
 import path from "path";
 import fs from "fs";
 import ffmpeg from "fluent-ffmpeg";
-// import OpenAI from "openai";
 
 import transcribeAudio from "./transcribeAudio/TranscribeAudio.js";
 
@@ -20,16 +19,12 @@ const deleteFilesInDirectory = (directoryPath) => {
   }
 };
 
-// const openai = new OpenAI({
-//   apiKey: process.env.OPEN_API_KEY,
-// });
-
 // create campaign api/campaign/create
 export const CreateCampaign = async (req, res) => {
   try {
-    const { campaignType, campaignName, language } = req.body;
+    const { campaignType, campaignName, language, recipients } = req.body;
+    // console.log(req.body);
 
-    // Check if a campaign with the same name already exists
     const existingCampaign = await Campaign.findOne({ campaignName });
     if (existingCampaign) {
       return res
@@ -52,7 +47,7 @@ export const CreateCampaign = async (req, res) => {
       campaignName,
       language,
       // videoTemplate: { cloudinaryURL: cloudinaryResponse.secure_url },
-      // recipients,
+      recipients,
       createdBy: req.user._id,
     });
 
