@@ -3,6 +3,7 @@ import { isAuthenticatedUser, authorizeRoles } from "../../middlewares/auth.js";
 import {
   CreateCampaign,
   GetCampaign,
+  MergeVideo,
   VideoToText,
 } from "./campaignController.js";
 
@@ -14,6 +15,9 @@ router
 router
   .route("/convert")
   .post(isAuthenticatedUser, authorizeRoles("admin"), VideoToText);
+router
+  .route("/merge")
+  .post(isAuthenticatedUser, authorizeRoles("admin"), MergeVideo);
 
 router
   .route("/getAll")
