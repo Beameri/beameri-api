@@ -5,14 +5,25 @@ import { dirname } from "path";
 import path from "path";
 import fs from "fs";
 import ffmpeg from "fluent-ffmpeg";
-
-import transcribeAudio from "./transcribeAudio/TranscribeAudio.js";
+import transcribeAudio from "./utils/TranscribeAudio.js";
 import { validateMp3 } from "./utils/validateMp3.js";
+import UploadAudioToElevenlabs from "./utils/UploadAudioToElevenlabs.js";
 
 const currentModulePath = dirname(fileURLToPath(import.meta.url));
 const UPLOADS_DIRECTORY = path.join(currentModulePath, "..", "..", "uploads");
 const TEMP_DIRECTORY = path.join(currentModulePath, "..", "..", "temp");
 
+// Create directories if they don't exist
+const createDirectoryIfNotExists = (directoryPath) => {
+  if (!fs.existsSync(directoryPath)) {
+    fs.mkdirSync(directoryPath);
+  }
+};
+
+createDirectoryIfNotExists(TEMP_DIRECTORY);
+createDirectoryIfNotExists(UPLOADS_DIRECTORY);
+
+// Helper function to delete files in a directory
 const deleteFilesInDirectory = (directoryPath) => {
   const files = fs.readdirSync(directoryPath);
   for (const file of files) {
@@ -21,30 +32,30 @@ const deleteFilesInDirectory = (directoryPath) => {
   }
 };
 
-if (!fs.existsSync(TEMP_DIRECTORY)) {
-  fs.mkdirSync(TEMP_DIRECTORY);
-}
-
-// extract video to text /api/campaign/convert
+// Extract video to text /api/campaign/convert
 export const VideoToText = async (req, res) => {
   try {
-    if (!req.files || !req.files.videoTemplate) {
+    const { videoTemplate } = req.files;
+
+    if (!videoTemplate) {
       return res
         .status(400)
-        .json({ success: false, message: "No video files uploaded." });
+        .json({ success: false, message: "No video file uploaded." });
     }
 
-    const videoFile = req.files.videoTemplate;
+    const generateUniqueFileName = () =>
+      `${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+
     const mp4FilePath = path.join(
       UPLOADS_DIRECTORY,
-      `${Date.now()}_${Math.floor(Math.random() * 10000)}.mp4`
+      `${generateUniqueFileName()}.mp4`
     );
     const mp3FilePath = path.join(
       UPLOADS_DIRECTORY,
-      `${Date.now()}_${Math.floor(Math.random() * 10000)}.mp3`
+      `${generateUniqueFileName()}.mp3`
     );
 
-    await videoFile.mv(mp4FilePath);
+    await videoTemplate.mv(mp4FilePath);
 
     await new Promise((resolve, reject) => {
       ffmpeg()
@@ -62,6 +73,19 @@ export const VideoToText = async (req, res) => {
         .json({ success: false, message: "Invalid MP3 file." });
     }
 
+    const addVoiceResponse = await UploadAudioToElevenlabs(mp3FilePath);
+
+    if (addVoiceResponse.status === 422) {
+      deleteFilesInDirectory(UPLOADS_DIRECTORY);
+
+      return res.status(422).json({
+        success: false,
+        message: "Request failed with status code 422",
+      });
+    }
+
+    console.log("voice sent to elevenlabs", addVoiceResponse.data.voice_id);
+
     const cloudinaryResponse = await cloudinary.v2.uploader.upload(
       mp3FilePath,
       {
@@ -70,13 +94,16 @@ export const VideoToText = async (req, res) => {
     );
 
     const audioUrl = cloudinaryResponse.secure_url;
-
+    console.log("audio sent to cloudinary");
     const transcription = await transcribeAudio(mp3FilePath);
+    console.log("text extracted");
 
+    // Create a campaign in MongoDB if needed
     // const campaign = await Campaign.create({
     //   audioTemplate: { cloudinaryURL: audioUrl },
     //   createdBy: req.user._id,
     // });
+
     deleteFilesInDirectory(UPLOADS_DIRECTORY);
 
     return res.status(200).json({
@@ -84,10 +111,11 @@ export const VideoToText = async (req, res) => {
       message: "Video converted to text successfully.",
       text: transcription,
       audio: audioUrl,
+      voiceId: addVoiceResponse.data.voice_id,
     });
   } catch (error) {
     deleteFilesInDirectory(UPLOADS_DIRECTORY);
-    console.log("Error:", error.message);
+    console.log("Error:", error);
     return res.status(500).json({
       success: false,
       message: error.message,
@@ -95,7 +123,7 @@ export const VideoToText = async (req, res) => {
   }
 };
 
-// merge videos api/campaign/merge
+// Merge videos /api/campaign/merge
 export const MergeVideo = async (req, res) => {
   try {
     const { videos } = req.files;
@@ -123,12 +151,10 @@ export const MergeVideo = async (req, res) => {
 
     ffmpegCommand
       .on("error", (err) => {
-        console.log("Error:", err);
+        console.error("Error:", err);
         throw err;
       })
       .on("end", async () => {
-        // console.log("Videos merged successfully");
-
         try {
           const videoResult = await cloudinary.v2.uploader.upload(
             outputFilePath,
@@ -139,16 +165,15 @@ export const MergeVideo = async (req, res) => {
           );
 
           if (!videoResult) {
-            console.log("Error uploading to Cloudinary");
+            console.error("Error uploading to Cloudinary");
             throw new Error("Error uploading to Cloudinary");
-          } else {
-            // console.log("Video uploaded to Cloudinary:", videoResult.url);
-            res
-              .status(200)
-              .json({ success: false, cloudinaryUrl: videoResult.url });
           }
+
+          res
+            .status(200)
+            .json({ success: true, cloudinaryUrl: videoResult.url });
         } catch (error) {
-          console.log("Error uploading to Cloudinary:", error.message);
+          console.error("Error uploading to Cloudinary:", error.message);
           throw error;
         } finally {
           deleteFilesInDirectory(TEMP_DIRECTORY);
@@ -158,16 +183,15 @@ export const MergeVideo = async (req, res) => {
 
     ffmpegCommand.mergeToFile(outputFilePath);
   } catch (error) {
-    console.log("An error occurred:", error.message);
+    console.error("An error occurred:", error.message);
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// create campaign api/campaign/create
+// Create campaign /api/campaign/create
 export const CreateCampaign = async (req, res) => {
   try {
     const { campaignType, campaignName, language, recipients } = req.body;
-    // console.log(req.body);
 
     const existingCampaign = await Campaign.findOne({ campaignName });
     if (existingCampaign) {
@@ -176,7 +200,7 @@ export const CreateCampaign = async (req, res) => {
         .json({ success: false, message: "Campaign already exists" });
     }
 
-    // // Create the campaign in MongoDB
+    // Create the campaign in MongoDB
     const campaign = await Campaign.create({
       campaignType,
       campaignName,
@@ -193,35 +217,36 @@ export const CreateCampaign = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message ? error.message : "Something went Wrong",
+      message: error.message || "Something went wrong",
     });
   }
 };
 
-// get campaign api/campaign/getAll
+// Get all campaigns /api/campaign/getAll
 export const GetCampaign = async (req, res) => {
   try {
-    if (!req?.user) return res.status(400).json({ message: "Please login !" });
-    // console.log(req?.user);
+    if (!req?.user) {
+      return res.status(400).json({ message: "Please login!" });
+    }
 
     const campaigns = await Campaign.find().sort({ createdAt: -1 });
-    if (campaigns) {
+
+    if (campaigns.length > 0) {
       return res.status(200).json({
         success: true,
         campaigns,
-        message: "Fetched All campaigns ",
+        message: "Fetched all campaigns",
       });
     } else {
       return res.status(404).json({
         success: true,
-
-        message: "No campaigns till Now",
+        message: "No campaigns found",
       });
     }
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message ? error.message : "Something went Wrong",
+      message: error.message || "Something went wrong",
     });
   }
 };
