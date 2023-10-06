@@ -2,8 +2,11 @@ import express from "express";
 import { isAuthenticatedUser, authorizeRoles } from "../../middlewares/auth.js";
 import {
   CreateCampaign,
+  GetAllWhatsappMsg,
   GetCampaign,
+  GetMsgStatus,
   MergeVideo,
+  SendMsgOnWhatsapp,
   VideoToText,
 } from "./campaignController.js";
 
@@ -22,5 +25,15 @@ router
 router
   .route("/getAll")
   .get(isAuthenticatedUser, authorizeRoles("admin"), GetCampaign);
+router
+  .route("/sendOnWhatsapp")
+  .post(isAuthenticatedUser, authorizeRoles("admin"), SendMsgOnWhatsapp);
+router
+  .route("/message-status/:messageSid")
+  .get(isAuthenticatedUser, authorizeRoles("admin"), GetMsgStatus);
+
+router
+  .route("/getAllWhatsappmsg/:createdBy")
+  .get(isAuthenticatedUser, authorizeRoles("admin"), GetAllWhatsappMsg);
 
 export default router;
