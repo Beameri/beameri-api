@@ -30,8 +30,17 @@ export default async function transcribeAudio(mp3FilePath) {
       }
     );
 
+    if (transcribeResponse.status !== 200) {
+      console.error(
+        "Transcription failed with status code:",
+        transcribeResponse.status
+      );
+      // console.log("Response content:", transcribeResponse.data);
+      throw new Error("Transcription failed");
+    }
+
     const { id: jobId } = transcribeResponse.data;
-    console.log("transcribeResponse.data", transcribeResponse.data);
+    // console.log("transcribeResponse.data", transcribeResponse.data);
 
     let status = "queued";
     let transcription = "";
@@ -47,7 +56,7 @@ export default async function transcribeAudio(mp3FilePath) {
       );
 
       status = jobStatusResponse.data.status;
-      //   console.log("jobStatusResponse", jobStatusResponse.data);
+      // console.log("jobStatusResponse", jobStatusResponse.data);
       if (status === "completed") {
         transcription = jobStatusResponse.data.text;
         break;
@@ -66,6 +75,7 @@ export default async function transcribeAudio(mp3FilePath) {
 
     return transcription;
   } catch (error) {
+    console.log("assembly error", error);
     throw error;
   }
 }
