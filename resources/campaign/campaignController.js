@@ -5,6 +5,11 @@ import { dirname } from "path";
 import path from "path";
 import fs from "fs";
 import ffmpeg from "fluent-ffmpeg";
+// twilio
+import twilio from "twilio";
+
+import transcribeAudio from "./transcribeAudio/TranscribeAudio.js";
+import { WhatsappModel } from "./sendMsgOnWModel.js";
 import transcribeAudio from "./utils/TranscribeAudio.js";
 import { validateMp3 } from "./utils/validateMp3.js";
 import UploadAudioToElevenlabs from "./utils/UploadAudioToElevenlabs.js";
@@ -247,6 +252,86 @@ export const GetCampaign = async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message || "Something went wrong",
+    });
+  }
+};
+
+export const SendMsgOnWhatsapp = async (req, res) => {
+  const { message, mobilenumber, name, createdBy } = req.body;
+
+  // res.json({ fromnum, tonum });
+  if (!mobilenumber) {
+    return res.status(400).json({
+      success: false,
+      message: "Both fields are required",
+    });
+  }
+  const client = new twilio(
+    process.env.TWILIO_ACCOUNT_SID,
+    process.env.TWILIO_AUTH_TOKEN
+  );
+  // console.log(client);
+
+  try {
+    const response = await client.messages.create({
+      from: "whatsapp:+14155238886",
+      body: message,
+      to: `whatsapp:+91${mobilenumber}`,
+    });
+    if (response) {
+      const msgSentOnWhatsapp = await WhatsappModel.create({
+        name,
+        message,
+        mobilenumber,
+        messageSid: response.sid,
+        createdBy,
+      });
+      if (msgSentOnWhatsapp) {
+        return res
+          .status(200)
+          .json({ success: true, response, msgSentOnWhatsapp });
+      }
+    }
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message ? error.message : "Something went Wrong",
+    });
+  }
+};
+
+export const GetMsgStatus = async (req, res) => {
+  const { messageSid } = req.params;
+  console.log(messageSid);
+  const client = new twilio(
+    process.env.TWILIO_ACCOUNT_SID,
+    process.env.TWILIO_AUTH_TOKEN
+  );
+
+  try {
+    const message = await client.messages(messageSid).fetch();
+    res.status(200).json({ status: message });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message ? error.message : "Something went Wrong",
+    });
+  }
+};
+
+export const GetAllWhatsappMsg = async (req, res) => {
+  const { createdBy } = req.params;
+  try {
+    const response = await WhatsappModel.find({ createdBy: createdBy }).sort({
+      createdAt: -1,
+    });
+    if (response) {
+      return res.status(200).json({ success: true, response });
+    }
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message ? error.message : "Something went Wrong",
     });
   }
 };
