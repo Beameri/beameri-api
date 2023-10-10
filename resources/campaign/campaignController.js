@@ -8,7 +8,6 @@ import ffmpeg from "fluent-ffmpeg";
 // twilio
 import twilio from "twilio";
 
-import transcribeAudio from "./transcribeAudio/TranscribeAudio.js";
 import { WhatsappModel } from "./sendMsgOnWModel.js";
 import transcribeAudio from "./utils/TranscribeAudio.js";
 import { validateMp3 } from "./utils/validateMp3.js";
