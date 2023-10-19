@@ -8,188 +8,166 @@ import ffmpeg from "fluent-ffmpeg";
 // twilio
 import twilio from "twilio";
 
-import { WhatsappModel } from "./sendMsgOnWModel.js";
-import transcribeAudio from "./utils/TranscribeAudio.js";
-import { validateMp3 } from "./utils/validateMp3.js";
-import UploadAudioToElevenlabs from "./utils/UploadAudioToElevenlabs.js";
+// import { WhatsappModel } from "./sendMsgOnWModel.js";
+// import transcribeAudio from "./utils/TranscribeAudio.js";
+// import { validateMp3 } from "./utils/validateMp3.js";
+// import UploadAudioToElevenlabs from "./utils/UploadAudioToElevenlabs.js";
 
-const currentModulePath = dirname(fileURLToPath(import.meta.url));
-const UPLOADS_DIRECTORY = path.join(currentModulePath, "..", "..", "uploads");
-const TEMP_DIRECTORY = path.join(currentModulePath, "..", "..", "temp");
+// const currentModulePath = dirname(fileURLToPath(import.meta.url));
+// const UPLOADS_DIRECTORY = path.join(currentModulePath, "..", "..", "uploads");
+// const TEMP_DIRECTORY = path.join(currentModulePath, "..", "..", "temp");
 
-// Create directories if they don't exist
-const createDirectoryIfNotExists = (directoryPath) => {
-  if (!fs.existsSync(directoryPath)) {
-    fs.mkdirSync(directoryPath);
-  }
-};
+// // Create directories if they don't exist
+// const createDirectoryIfNotExists = (directoryPath) => {
+//   if (!fs.existsSync(directoryPath)) {
+//     fs.mkdirSync(directoryPath);
+//   }
+// };
 
-createDirectoryIfNotExists(TEMP_DIRECTORY);
-createDirectoryIfNotExists(UPLOADS_DIRECTORY);
+// createDirectoryIfNotExists(TEMP_DIRECTORY);
+// createDirectoryIfNotExists(UPLOADS_DIRECTORY);
 
-// Helper function to delete files in a directory
-const deleteFilesInDirectory = (directoryPath) => {
-  const files = fs.readdirSync(directoryPath);
-  for (const file of files) {
-    const filePath = path.join(directoryPath, file);
-    fs.unlinkSync(filePath);
-  }
-};
+// // Helper function to delete files in a directory
+// const deleteFilesInDirectory = (directoryPath) => {
+//   const files = fs.readdirSync(directoryPath);
+//   for (const file of files) {
+//     const filePath = path.join(directoryPath, file);
+//     fs.unlinkSync(filePath);
+//   }
+// };
 
 // Extract video to text /api/campaign/convert
 export const VideoToText = async (req, res) => {
-  try {
-    const { videoTemplate } = req.files;
-
-    if (!videoTemplate) {
-      return res
-        .status(400)
-        .json({ success: false, message: "No video file uploaded." });
-    }
-
-    const generateUniqueFileName = () =>
-      `${Date.now()}_${Math.floor(Math.random() * 10000)}`;
-
-    const mp4FilePath = path.join(
-      UPLOADS_DIRECTORY,
-      `${generateUniqueFileName()}.mp4`
-    );
-    const mp3FilePath = path.join(
-      UPLOADS_DIRECTORY,
-      `${generateUniqueFileName()}.mp3`
-    );
-
-    await videoTemplate.mv(mp4FilePath);
-
-    await new Promise((resolve, reject) => {
-      ffmpeg()
-        .input(mp4FilePath)
-        .toFormat("mp3")
-        .on("end", resolve)
-        .on("error", reject)
-        .save(mp3FilePath);
-    });
-
-    const isValidMp3 = await validateMp3(mp3FilePath);
-    if (!isValidMp3) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid MP3 file." });
-    }
-
-    const addVoiceResponse = await UploadAudioToElevenlabs(mp3FilePath);
-
-    if (addVoiceResponse.status === 422) {
-      deleteFilesInDirectory(UPLOADS_DIRECTORY);
-
-      return res.status(422).json({
-        success: false,
-        message: "Request failed with status code 422",
-      });
-    }
-
-    console.log("voice sent to elevenlabs", addVoiceResponse.data.voice_id);
-
-    const cloudinaryResponse = await cloudinary.v2.uploader.upload(
-      mp3FilePath,
-      {
-        resource_type: "video",
-      }
-    );
-
-    const audioUrl = cloudinaryResponse.secure_url;
-    console.log("audio sent to cloudinary");
-    const transcription = await transcribeAudio(mp3FilePath);
-    console.log("text extracted");
-
-    // Create a campaign in MongoDB if needed
-    // const campaign = await Campaign.create({
-    //   audioTemplate: { cloudinaryURL: audioUrl },
-    //   createdBy: req.user._id,
-    // });
-
-    deleteFilesInDirectory(UPLOADS_DIRECTORY);
-
-    return res.status(200).json({
-      success: true,
-      message: "Video converted to text successfully.",
-      text: transcription,
-      audio: audioUrl,
-      voiceId: addVoiceResponse.data.voice_id,
-    });
-  } catch (error) {
-    deleteFilesInDirectory(UPLOADS_DIRECTORY);
-    console.log("Error:", error);
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
+  //   try {
+  //     const { videoTemplate } = req.files;
+  //     if (!videoTemplate) {
+  //       return res
+  //         .status(400)
+  //         .json({ success: false, message: "No video file uploaded." });
+  //     }
+  //     const generateUniqueFileName = () =>
+  //       `${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+  //     const mp4FilePath = path.join(
+  //       UPLOADS_DIRECTORY,
+  //       `${generateUniqueFileName()}.mp4`
+  //     );
+  //     const mp3FilePath = path.join(
+  //       UPLOADS_DIRECTORY,
+  //       `${generateUniqueFileName()}.mp3`
+  //     );
+  //     await videoTemplate.mv(mp4FilePath);
+  //     await new Promise((resolve, reject) => {
+  //       ffmpeg()
+  //         .input(mp4FilePath)
+  //         .toFormat("mp3")
+  //         .on("end", resolve)
+  //         .on("error", reject)
+  //         .save(mp3FilePath);
+  //     });
+  //     const isValidMp3 = await validateMp3(mp3FilePath);
+  //     if (!isValidMp3) {
+  //       return res
+  //         .status(400)
+  //         .json({ success: false, message: "Invalid MP3 file." });
+  //     }
+  //     const addVoiceResponse = await UploadAudioToElevenlabs(mp3FilePath);
+  //     if (addVoiceResponse.status === 422) {
+  //       deleteFilesInDirectory(UPLOADS_DIRECTORY);
+  //       return res.status(422).json({
+  //         success: false,
+  //         message: "Request failed with status code 422",
+  //       });
+  //     }
+  //     console.log("voice sent to elevenlabs", addVoiceResponse.data.voice_id);
+  //     const cloudinaryResponse = await cloudinary.v2.uploader.upload(
+  //       mp3FilePath,
+  //       {
+  //         resource_type: "video",
+  //       }
+  //     );
+  //     const audioUrl = cloudinaryResponse.secure_url;
+  //     console.log("audio sent to cloudinary");
+  //     const transcription = await transcribeAudio(mp3FilePath);
+  //     console.log("text extracted");
+  //     // Create a campaign in MongoDB if needed
+  //     // const campaign = await Campaign.create({
+  //     //   audioTemplate: { cloudinaryURL: audioUrl },
+  //     //   createdBy: req.user._id,
+  //     // });
+  //     deleteFilesInDirectory(UPLOADS_DIRECTORY);
+  //     return res.status(200).json({
+  //       success: true,
+  //       message: "Video converted to text successfully.",
+  //       text: transcription,
+  //       audio: audioUrl,
+  //       voiceId: addVoiceResponse.data.voice_id,
+  //     });
+  //   } catch (error) {
+  //     deleteFilesInDirectory(UPLOADS_DIRECTORY);
+  //     console.log("Error:", error);
+  //     return res.status(500).json({
+  //       success: false,
+  //       message: error.message,
+  //     });
+  //   }
 };
 
 // Merge videos /api/campaign/merge
 export const MergeVideo = async (req, res) => {
-  try {
-    const { videos } = req.files;
-
-    if (!videos || videos.length < 2) {
-      return res.status(400).json({
-        success: false,
-        message: "Please provide at least two videos for merging.",
-      });
-    }
-
-    const fileNames = [];
-    const outputFilePath = path.join(
-      TEMP_DIRECTORY,
-      `${Date.now()}_output.mp4`
-    );
-    const ffmpegCommand = ffmpeg();
-
-    videos.forEach((file) => {
-      const tempPath = path.join(TEMP_DIRECTORY, file.name);
-      fs.renameSync(file.tempFilePath, tempPath);
-      fileNames.push(tempPath);
-      ffmpegCommand.input(tempPath);
-    });
-
-    ffmpegCommand
-      .on("error", (err) => {
-        console.error("Error:", err);
-        throw err;
-      })
-      .on("end", async () => {
-        try {
-          const videoResult = await cloudinary.v2.uploader.upload(
-            outputFilePath,
-            {
-              resource_type: "video",
-              folder: "campaigns/merge-video",
-            }
-          );
-
-          if (!videoResult) {
-            console.error("Error uploading to Cloudinary");
-            throw new Error("Error uploading to Cloudinary");
-          }
-
-          res
-            .status(200)
-            .json({ success: true, cloudinaryUrl: videoResult.url });
-        } catch (error) {
-          console.error("Error uploading to Cloudinary:", error.message);
-          throw error;
-        } finally {
-          deleteFilesInDirectory(TEMP_DIRECTORY);
-          console.log("Files removed from the uploads folder");
-        }
-      });
-
-    ffmpegCommand.mergeToFile(outputFilePath);
-  } catch (error) {
-    console.error("An error occurred:", error.message);
-    res.status(500).json({ success: false, message: error.message });
-  }
+  //   try {
+  //     const { videos } = req.files;
+  //     if (!videos || videos.length < 2) {
+  //       return res.status(400).json({
+  //         success: false,
+  //         message: "Please provide at least two videos for merging.",
+  //       });
+  //     }
+  //     const fileNames = [];
+  //     const outputFilePath = path.join(
+  //       TEMP_DIRECTORY,
+  //       `${Date.now()}_output.mp4`
+  //     );
+  //     const ffmpegCommand = ffmpeg();
+  //     videos.forEach((file) => {
+  //       const tempPath = path.join(TEMP_DIRECTORY, file.name);
+  //       fs.renameSync(file.tempFilePath, tempPath);
+  //       fileNames.push(tempPath);
+  //       ffmpegCommand.input(tempPath);
+  //     });
+  //     ffmpegCommand
+  //       .on("error", (err) => {
+  //         console.error("Error:", err);
+  //         throw err;
+  //       })
+  //       .on("end", async () => {
+  //         try {
+  //           const videoResult = await cloudinary.v2.uploader.upload(
+  //             outputFilePath,
+  //             {
+  //               resource_type: "video",
+  //               folder: "campaigns/merge-video",
+  //             }
+  //           );
+  //           if (!videoResult) {
+  //             console.error("Error uploading to Cloudinary");
+  //             throw new Error("Error uploading to Cloudinary");
+  //           }
+  //           res
+  //             .status(200)
+  //             .json({ success: true, cloudinaryUrl: videoResult.url });
+  //         } catch (error) {
+  //           console.error("Error uploading to Cloudinary:", error.message);
+  //           throw error;
+  //         } finally {
+  //           deleteFilesInDirectory(TEMP_DIRECTORY);
+  //           console.log("Files removed from the uploads folder");
+  //         }
+  //       });
+  //     ffmpegCommand.mergeToFile(outputFilePath);
+  //   } catch (error) {
+  //     console.error("An error occurred:", error.message);
+  //     res.status(500).json({ success: false, message: error.message });
+  //   }
 };
 
 // Create campaign /api/campaign/create
