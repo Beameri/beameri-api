@@ -55,6 +55,8 @@ import AppointmentRouter from "./resources/Appointments/AppointmentRoute.js";
 import ShortUrlRouter from "./resources/Businesses/Short_Urls/ShortUrlRoute.js";
 // campaign
 import CampaignRoute from "./resources/campaign/campaignRoute.js";
+// faqs
+import FaqsRoute from "./resources/Faqs/FaqsRoute.js";
 
 app.use("/api/v1/", user);
 
@@ -94,5 +96,7 @@ app.use("/api/appointment", AppointmentRouter);
 app.use("/api/shorturl", ShortUrlRouter);
 // campaigns
 app.use("/api/campaign", CampaignRoute);
+// Faqs
+app.use("/api/faqs", FaqsRoute);
 
 export default app;
