@@ -27,8 +27,6 @@ export const AddNewFaqs = async (req, res) => {
 
 export const getAllFaqs = async (req, res) => {
   try {
-    if (!req?.user) return res.status(400).json({ message: "please login !" });
-
     const faqs = await Faqs.find().sort({ createdAt: -1 });
     if (faqs) {
       return res.status(200).json({

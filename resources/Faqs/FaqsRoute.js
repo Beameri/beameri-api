@@ -13,9 +13,7 @@ const router = express.Router();
 router
   .route("/add")
   .post(isAuthenticatedUser, authorizeRoles("admin"), AddNewFaqs);
-router
-  .route("/getAll")
-  .get(isAuthenticatedUser, authorizeRoles("admin"), getAllFaqs);
+router.route("/getAll").get(getAllFaqs);
 router
   .route("/get/:id")
   .get(isAuthenticatedUser, authorizeRoles("admin"), getFaqById);
