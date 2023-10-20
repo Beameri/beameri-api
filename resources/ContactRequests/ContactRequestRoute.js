@@ -7,9 +7,7 @@ import {
 
 const router = express.Router();
 
-router
-  .route("/new")
-  .post(isAuthenticatedUser, authorizeRoles("admin"), AddNewContactRequest);
+router.route("/new").post(AddNewContactRequest);
 router
   .route("/getAll")
   .get(isAuthenticatedUser, authorizeRoles("admin"), FindAllContactRequest);
